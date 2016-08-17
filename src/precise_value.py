@@ -9,18 +9,8 @@ class Precise_value(object):
         '''value can be any type that Decimal() accepts'''
         self.fixed_point_value = Decimal(value)
         self.string_value = str(value)
-        self.set_rounding_handler(rounding_method)
+        self.rounding_handler = rounding_method
         self.update_significant_digit_counts()
-
-    def set_rounding_handler(self, rounding_method):
-        if rounding_method == 'no_rounding':
-            self.rounding_handler = Rounding_handler
-        elif rounding_method == 'keep_integral_zeroes':
-            self.rounding_handler = Rounding_handler_keep_integral_zeroes
-        elif rounding_method == 'proper':
-            self.rounding_handler = Rounding_handler_proper
-        else:
-            sys.exit('Error: rounding_method "' + rounding_method + '" does not exist.')
 
     '''Arithmetic Operators:'''
     def __add__(self, other):
@@ -96,7 +86,7 @@ class Rounding_handler(metaclass=ABCMeta):
     @abstractmethod
     def round_decimal_digits(calculated_value, operand_1, operand_2):
         return( calculated_value )
-        
+
     @abstractmethod
     def num_significant_decimal_digits(value):
         '''Counts number of significant digits to right of decimal point'''
