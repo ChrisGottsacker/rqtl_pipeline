@@ -72,7 +72,7 @@ class Rounding_handler(metaclass=ABCMeta):
         fixed_point_value = operand_1.fixed_point_value + operand_2.fixed_point_value
         rounded_fixed_point_value = cls.round_decimal_digits(
             fixed_point_value, operand_1, operand_2)
-        return( Precise_value(operand_1.rounding_method, rounded_fixed_point_value) )
+        return( Precise_value(operand_1.rounding_handler, rounded_fixed_point_value) )
 
     def sub(operand_1, operand_2):
         return( operand_1.fixed_point_value - operand_2.fixed_point_value )
