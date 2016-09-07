@@ -10,4 +10,6 @@ class test_Rounding_handler(unittest.TestCase):
         with self.assertRaises(TypeError):
             Rounding_handler()
 
-class test_Rounding_handler_keep_integral_zeroes(unittest.TestCase):
+    def test_add
+
+# class test_Rounding_handler_keep_integral_zeroes(unittest.TestCase):

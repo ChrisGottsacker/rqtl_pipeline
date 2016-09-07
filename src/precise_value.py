@@ -5,6 +5,9 @@ import re
 import sys
 
 class Precise_value(object):
+    '''
+    Wrapper for Decimal object.
+    '''
     def __init__(self, rounding_method, value):
         '''value can be any type that Decimal() accepts'''
         self.fixed_point_value = Decimal(value)
@@ -61,12 +64,15 @@ class Precise_value(object):
         return(self.rounding_handler.__class__ is other.rounding_handler.__class__)
 
     def update_significant_digit_counts(self):
-        self.num_significant_digits = self.rounding_handler.num_significant_digits(self.string_value)
+        self.num_all_significant_digits = self.rounding_handler.num_all_significant_digits(self.string_value)
         self.num_significant_decimal_digits = self.rounding_handler.num_significant_decimal_digits(self.string_value)
 
 
 class Rounding_handler(metaclass=ABCMeta):
-    '''Base class for rounding handlers. Does NO rounding.'''
+    '''
+    Simple Rounding Handler, does NO rounding. Significant figures are irrelevant.
+    Use class inherited from this one to do actual rounding.
+    '''
     @classmethod
     def add(cls, operand_1, operand_2):
         fixed_point_value = operand_1.fixed_point_value + operand_2.fixed_point_value
@@ -74,18 +80,34 @@ class Rounding_handler(metaclass=ABCMeta):
             fixed_point_value, operand_1, operand_2)
         return( Precise_value(operand_1.rounding_handler, rounded_fixed_point_value) )
 
-    def sub(operand_1, operand_2):
-        return( operand_1.fixed_point_value - operand_2.fixed_point_value )
+    @classmethod
+    def sub(cls, operand_1, operand_2):
+        fixed_point_value = operand_1.fixed_point_value - operand_2.fixed_point_value
+        rounded_fixed_point_value = cls.round_decimal_digits(
+            fixed_point_value, operand_1, operand_2)
+        return( Precise_value(operand_1.rounding_handler, rounded_fixed_point_value) )
 
-    def mul(operand_1, operand_2):
-        return( operand_1.fixed_point_value * operand_2.fixed_point_value )
+    @classmethod
+    def mul(cls, operand_1, operand_2):
+        fixed_point_value = operand_1.fixed_point_value * operand_2.fixed_point_value
+        rounded_fixed_point_value = cls.round_all_significant_digits(
+            fixed_point_value, operand_1, operand_2 )
+        return(rounded_fixed_point_value)
 
-    def div(operand_1, operand_2):
-        return( operand_1.fixed_point_value / operand_2.fixed_point_value )
+    @classmethod
+    def div(cls, operand_1, operand_2):
+        fixed_point_value = operand_1.fixed_point_value / operand_2.fixed_point_value
+        rounded_fixed_point_value = cls.round_all_significant_digits(
+            fixed_point_value, operand_1, operand_2 )
+        return(rounded_fixed_point_value)
 
     @abstractmethod
     def round_decimal_digits(calculated_value, operand_1, operand_2):
         return( calculated_value )
+
+    @abstractmethod
+    def round_all_significant_digits(calculated_value, operand_1, operand_2):
+        return(calculated_value)
 
     @abstractmethod
     def num_significant_decimal_digits(value):
@@ -93,12 +115,12 @@ class Rounding_handler(metaclass=ABCMeta):
         return(None)
 
     @abstractmethod
-    def num_significant_digits(value):
-        '''Counts number of significant figures in a numeric string.'''
+    def num_all_significant_digits(value):
+        '''Counts total number of significant figures in a numeric string.'''
         return(None)
 
     @abstractmethod
-    def get_significant_digits(value):
+    def get_all_significant_digits(value):
         return(None)
 
     @abstractmethod
@@ -131,14 +153,24 @@ class Rounding_handler(metaclass=ABCMeta):
 
 
 class Rounding_handler_keep_integral_zeroes(Rounding_handler, metaclass=ABCMeta):
+    '''
+    100     has 3 sigfigs
+    10.0    has 3 sigfigs
+    .00     has 1 sigfig
+    .01     has 1 sigfig
+    '''
     def round_decimal_digits(calculated_value, operand_1, operand_2):
         num_digits_to_keep = min(operand_1.num_significant_decimal_digits, operand_2.num_significant_decimal_digits)
         return( calculated_value.quantize(Decimal(str(pow(10,-num_digits_to_keep))),
         rounding=ROUND_HALF_EVEN) )
 
-    def num_significant_digits(value):
+    def round_all_significant_digits(calculated_value, operand_1, operand_2):
+        "TODO complete this"
+        return(None)
+
+    def num_all_significant_digits(value):
         '''Counts number of significant figures in a numeric string.'''
-        parsed_value = Rounding_handler_keep_integral_zeroes.get_significant_digits(value)
+        parsed_value = Rounding_handler_keep_integral_zeroes.get_all_significant_digits(value)
         parsed_value = Rounding_handler_keep_integral_zeroes.remove_decimal_point(parsed_value) # remove decimal point
         return( len( parsed_value ) )
 
@@ -146,7 +178,7 @@ class Rounding_handler_keep_integral_zeroes(Rounding_handler, metaclass=ABCMeta)
         '''Counts number of significant digits to right of decimal point'''
         return( len(get_significant_decimal_digits(value)) )
 
-    def get_significant_digits(value):
+    def get_all_significant_digits(value):
         '''Remove non digits, undesired zeroes, scientific notation characters,
         but leave the decimal point.
             e.g. -034.5E+3 -> 34.5    or   0.004 -> .4'''
@@ -163,7 +195,13 @@ class Rounding_handler_keep_integral_zeroes(Rounding_handler, metaclass=ABCMeta)
 
 
 class Rounding_handler_proper(Rounding_handler_keep_integral_zeroes):
-    def get_significant_digits(value):
-        parsed_value = super().get_significant_digits(value)
+    '''
+    100     has 1 sigfig
+    10.0    has 3 sigfigs
+    .00     has 1 sigfig
+    .01     has 1 sigfig
+    '''
+    def get_all_significant_digits(value):
+        parsed_value = super().get_all_significant_digits(value)
         parsed_value = Rounding_handler_proper.remove_integral_placeholding_zeroes(parsed_value)
         return( parsed_value )
