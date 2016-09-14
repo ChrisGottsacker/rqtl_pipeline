@@ -1,2 +1,2 @@
 cls
-python -m unittest discover
+python -m unittest test.test_Rounding_handler_keep_integral_zeroes
