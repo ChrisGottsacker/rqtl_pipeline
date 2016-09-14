@@ -54,6 +54,7 @@ class Precise_value(object):
         # Use for intermediate arithmetic. Never rounded. Not correct precision.
         self.fixed_point_value_unrounded = Decimal(value)
         # Use for comparisons, display purposes. (Rouneded to) Correct precision.
+        # Kept current by all functions, so its value is always accurate.
         self.fixed_point_value_rounded = rounding_handler.round(self)
         # Specifies how rounding should be done
         self.rounding_handler = rounding_handler
@@ -215,14 +216,18 @@ class Rounding_handler_keep_integral_zeroes(Rounding_handler, metaclass=ABCMeta)
     .00     has 1 sigfig
     .01     has 1 sigfig
     '''
-    def round_all_significant_digits(calculated_value, operand_1, operand_2):
+    def round(value):
+        '''code snipped from roundin decimals:
+        calculated_value.quantize(Decimal(str(pow(10,-num_digits_to_keep))),
+        rounding=ROUND_HALF_EVEN)'''
+
+    def num_all_significant_digits_to_keep(calculated_value, operand_1, operand_2):
         "TODO complete this after add() and mul() work how I want"
         return(None)
 
-    def round_decimal_digits(calculated_value, operand_1, operand_2):
-        num_digits_to_keep = min(operand_1.num_significant_decimal_digits, operand_2.num_significant_decimal_digits)
-        return( calculated_value.quantize(Decimal(str(pow(10,-num_digits_to_keep))),
-        rounding=ROUND_HALF_EVEN) )
+    def num_decimal_digits_to_keep(calculated_value, operand_1, operand_2):
+        return(min(operand_1.num_significant_decimal_digits,
+            operand_2.num_significant_decimal_digits))
 
     def num_all_significant_digits(value):
         '''Counts number of significant figures in a numeric string.'''
