@@ -6,14 +6,31 @@ import sys
 
 class Precise_value(object):
     '''
+    A numeric type that obeys significant figure arithmetic rules.
+
     Wrapper for Decimal object.
     '''
-    def __init__(self, rounding_method, value):
-        '''value can be any type that Decimal() accepts'''
-        self.fixed_point_value = Decimal(value)
-        self.string_value = str(value)
-        self.rounding_handler = rounding_method
+
+    def __init__(self, value, rounding_handler):
+        '''
+        Keyword arguments:
+        rounding_method -- reference to one of the Rounding Handler classes
+        value -- can be any type that Decimal() accepts
+        '''
+        self.num_all_significant_digits = None
+        self.num_significant_decimal_digits = None
+
+        # updates num_all_significant_digits and num_significant_decimal_digits
+        # based on
         self.update_significant_digit_counts()
+
+        # Use for comparisons, display purposes. (Rouneded to) Correct precision
+        self.fixed_point_value_rounded = Decimal(value)
+        # Use for intermediate arithmetic. Never rounded. Not correct precision.
+        self.fixed_point_value_unrounded = self.fixed_point_value_rounded
+        # Specifies what digits count as significant
+        self.rounding_handler = rounding_handler
+
 
     '''Arithmetic Operators:'''
     def __add__(self, other):
@@ -35,22 +52,26 @@ class Precise_value(object):
     '''Comparison Operators:'''
     '''TODO: consider error-checking'''
     def __lt__(self, other):
-        return( self.fixed_point_value < other.fixed_point_value )
+        return( self.fixed_point_value_rounded < other.fixed_point_value_rounded )
 
     def __le__(self, other):
-        return( self.fixed_point_value <= other.fixed_point_value )
+        return( self.fixed_point_value_rounded <= other.fixed_point_value_rounded )
 
     def __eq__(self, other):
-        return( self.fixed_point_value == other.fixed_point_value )
+        return( self.fixed_point_value_rounded == other.fixed_point_value_rounded )
 
     def __ne__(self, other):
-        return( self.fixed_point_value != other.fixed_point_value )
+        return( self.fixed_point_value_rounded != other.fixed_point_value_rounded )
 
     def __ge__(self, other):
-        return( self.fixed_point_value >= other.fixed_point_value )
+        return( self.fixed_point_value_rounded >= other.fixed_point_value_rounded )
 
     def __gt__(self, other):
-        return( self.fixed_point_value > other.fixed_point_value )
+        return( self.fixed_point_value_rounded > other.fixed_point_value_rounded )
+
+    def __str__(self):
+        '''TODO: consider when
+        return( str(self.fixed_point_value_rounded) )
 
     def can_do_arithmetic(self, other):
         '''TODO raise exception or quit if math can't be done'''
@@ -64,8 +85,8 @@ class Precise_value(object):
         return(self.rounding_handler.__class__ is other.rounding_handler.__class__)
 
     def update_significant_digit_counts(self):
-        self.num_all_significant_digits = self.rounding_handler.num_all_significant_digits(self.string_value)
-        self.num_significant_decimal_digits = self.rounding_handler.num_significant_decimal_digits(self.string_value)
+        self.num_all_significant_digits = self.rounding_handler.num_all_significant_digits(self.__repr__())
+        self.num_significant_decimal_digits = self.rounding_handler.num_significant_decimal_digits(self.__repr__())
 
 
 class Rounding_handler(metaclass=ABCMeta):
@@ -75,31 +96,35 @@ class Rounding_handler(metaclass=ABCMeta):
     '''
     @classmethod
     def add(cls, operand_1, operand_2):
+        # Do arithmetic using wrapped class's magic functions
         fixed_point_value = operand_1.fixed_point_value + operand_2.fixed_point_value
         rounded_fixed_point_value = cls.round_decimal_digits(
             fixed_point_value, operand_1, operand_2)
-        return( Precise_value(operand_1.rounding_handler, rounded_fixed_point_value) )
+        return( Precise_value(rounded_fixed_point_value, operand_1.rounding_handler) )
 
     @classmethod
     def sub(cls, operand_1, operand_2):
+        # Do arithmetic using wrapped class's magic functions
         fixed_point_value = operand_1.fixed_point_value - operand_2.fixed_point_value
         rounded_fixed_point_value = cls.round_decimal_digits(
             fixed_point_value, operand_1, operand_2)
-        return( Precise_value(operand_1.rounding_handler, rounded_fixed_point_value) )
+        return( Precise_value(rounded_fixed_point_value, operand_1.rounding_handler) )
 
     @classmethod
     def mul(cls, operand_1, operand_2):
+        # Do arithmetic using wrapped class's magic functions
         fixed_point_value = operand_1.fixed_point_value * operand_2.fixed_point_value
         rounded_fixed_point_value = cls.round_all_significant_digits(
             fixed_point_value, operand_1, operand_2 )
-        return(rounded_fixed_point_value)
+        return( Precise_value(rounded_fixed_point_value, operand_1.rounding_handler) )
 
     @classmethod
     def div(cls, operand_1, operand_2):
+        # Do arithmetic using wrapped class's magic functions
         fixed_point_value = operand_1.fixed_point_value / operand_2.fixed_point_value
         rounded_fixed_point_value = cls.round_all_significant_digits(
             fixed_point_value, operand_1, operand_2 )
-        return(rounded_fixed_point_value)
+        return( Precise_value(rounded_fixed_point_value, operand_1.rounding_handler) )
 
     @abstractmethod
     def round_decimal_digits(calculated_value, operand_1, operand_2):
@@ -131,25 +156,29 @@ class Rounding_handler(metaclass=ABCMeta):
         return( re.sub(r'\.', r'', value) )
 
     def remove_non_digits(value):
-        '''Remove scientific notation characters and negation sign
+        '''Remove scientific notation characters, negation sign, dollar sign
         	-03.05E+4 -> 03.05'''
-        return( re.sub(r'^-*((\d+\.?\d*)|(\d*\.\d+)).*$', r'\1', value) )
+        return( re.sub(r'^(-|\$)*((\d+\.?\d*)|(\d*\.\d+)).*$', r'\2', value) )
 
     def remove_leading_zeroes(value):
         '''Remove leading zeroes to left of decimal point, keeping at most 1 zero
-        e.g. -03.05E+4 -> 305E+4    or    05 -> 5    or   0.4 -> .4    or   00 -> 0'''
-        return( re.sub(r'^0*(\d\.?\d*)$', r'\1', value) )
+        e.g. -03.05E+4 -> -3.05E+4    or    05 -> 5    or   0.4 -> .4    or   00 -> 0'''
+        return( re.sub(r'^(-|\$)*0*(([1-9]+.*)|(\.0*[1-9]+.*)|(\d.*))$', r'\1\2', value) )
 
     def remove_decimal_placeholding_zeroes(value):
         '''Remove leading zeroes to right of decimal point, plus any immediately to
         the left of decimal point, if value < 1
-        e.g. .05 -> .5    or   0.01 -> .1'''
-        return( re.sub(r'^0*(\.)0*(\d+)$', r'\1\2', value) )
+        e.g. .05 -> .5    or   0.01 -> .1   but   0 -> 0 and .0 -> .0'''
+        # if no digits on left, keep up to one placeholding zero on right
+        temp = re.sub(r'^(-|\$)*(\.)0*(\d+)(.*)$', r'\1\2\3\4', value)
+        # if at least one digit on left, remove all placeholding zeroes on right
+        temp = re.sub(r'^(-|\$)*(0+\.)0*(\d*)(.*)$', r'\1\2\3\4', temp)
+        return( temp )
 
     def remove_integral_placeholding_zeroes(value):
         '''Remove trailing zeroes to right of integer w/ no decimal point
         e.g. 100 -> 1   but   100. -> 100.'''
-        return( re.sub(r'^([1-9]+)0*$', r'\1', value) )
+        return( re.sub(r'^(-|\$)*([1-9]+)0*(?!\.)(.*)$', r'\1\2\3', value) )
 
 
 class Rounding_handler_keep_integral_zeroes(Rounding_handler, metaclass=ABCMeta):
@@ -159,14 +188,14 @@ class Rounding_handler_keep_integral_zeroes(Rounding_handler, metaclass=ABCMeta)
     .00     has 1 sigfig
     .01     has 1 sigfig
     '''
+    def round_all_significant_digits(calculated_value, operand_1, operand_2):
+        "TODO complete this after add() and mul() work how I want"
+        return(None)
+
     def round_decimal_digits(calculated_value, operand_1, operand_2):
         num_digits_to_keep = min(operand_1.num_significant_decimal_digits, operand_2.num_significant_decimal_digits)
         return( calculated_value.quantize(Decimal(str(pow(10,-num_digits_to_keep))),
         rounding=ROUND_HALF_EVEN) )
-
-    def round_all_significant_digits(calculated_value, operand_1, operand_2):
-        "TODO complete this"
-        return(None)
 
     def num_all_significant_digits(value):
         '''Counts number of significant figures in a numeric string.'''
@@ -176,20 +205,26 @@ class Rounding_handler_keep_integral_zeroes(Rounding_handler, metaclass=ABCMeta)
 
     def num_significant_decimal_digits(value):
         '''Counts number of significant digits to right of decimal point'''
-        return( len(get_significant_decimal_digits(value)) )
+        return( len(Rounding_handler_keep_integral_zeroes.get_significant_decimal_digits(value)) )
 
     def get_all_significant_digits(value):
-        '''Remove non digits, undesired zeroes, scientific notation characters,
+        '''
+        Helper function for num_all_significant_digits()
+        Remove non digits, undesired zeroes, scientific notation characters,
         but leave the decimal point.
-            e.g. -034.5E+3 -> 34.5    or   0.004 -> .4'''
+            e.g. -034.5E+3 -> 34.5    or   0.004 -> .4
+        '''
         parsed_value = Rounding_handler_keep_integral_zeroes.remove_non_digits(value)
         parsed_value = Rounding_handler_keep_integral_zeroes.remove_leading_zeroes(parsed_value)
         parsed_value = Rounding_handler_keep_integral_zeroes.remove_decimal_placeholding_zeroes(parsed_value)
         return( parsed_value )
 
     def get_significant_decimal_digits(value):
-        parsed_value = remove_non_digits(value)
-        parsed_value = remove_decimal_placeholding_zeroes(parsed_value)
+        '''
+        Helper function for num_significant_decimal_digits()
+        '''
+        parsed_value = Rounding_handler_keep_integral_zeroes.remove_non_digits(value)
+        parsed_value = Rounding_handler_keep_integral_zeroes.remove_decimal_placeholding_zeroes(parsed_value)
         return( parsed_value.split('.')[1] )
 
 
