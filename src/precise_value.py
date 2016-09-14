@@ -19,19 +19,20 @@ class Precise_value(object):
         value -- can be any type that Decimal accepts
         rounding_method -- reference to one of the Rounding Handler classes
         '''
-        self.num_all_significant_digits = None
-        self.num_significant_decimal_digits = None
-
-        # updates num_all_significant_digits and num_significant_decimal_digits
-        # based on
-        self.update_significant_digit_counts()
-
-        # Use for comparisons, display purposes. (Rouneded to) Correct precision
-        self.fixed_point_value_rounded = Decimal(value)
         # Use for intermediate arithmetic. Never rounded. Not correct precision.
-        self.fixed_point_value_unrounded = self.fixed_point_value_rounded
-        # Specifies what digits count as significant
+        self.fixed_point_value_unrounded = Decimal(value)
+        # Use for comparisons, display purposes. (Rouneded to) Correct precision
+        self.fixed_point_value_rounded = self.fixed_point_value_unrounded
+        # Specifies how rounding should be done
         self.rounding_handler = rounding_handler
+
+        # Counts how many digits are significant
+        value_as_string = self.__str__()
+        self.num_all_significant_digits = +\
+            self.rounding_handler.num_all_significant_digits(value_as_string)
+        self.num_significant_decimal_digits = +\
+            self.rounding_handler.num_significant_decimal_digits(value_as_string)
+
 
 
     def __init__(self, value, rounding_handler, num_all_significant_digits,
@@ -50,9 +51,22 @@ class Precise_value(object):
         num_all_significant_digits -- quantity used to know how to round
         num_significant_decimal_digits -- quantity used to know how to round
         '''
+        # Use for intermediate arithmetic. Never rounded. Not correct precision.
+        self.fixed_point_value_unrounded = Decimal(value)
+        # Use for comparisons, display purposes. (Rouneded to) Correct precision.
+        self.fixed_point_value_rounded = rounding_handler.round(self)
+        # Specifies how rounding should be done
+        self.rounding_handler = rounding_handler
 
+        self.num_all_significant_digits = num_all_significant_digits
+        self.num_significant_decimal_digits = num_significant_decimal_digits
+
+    def __str__(self):
+        return( str(self.fixed_point_value_rounded) )
 
     '''Arithmetic Operators:'''
+    # Any operation that changes this Precise Value's value must update
+    # self.fixed_point_value_rounded
     def __add__(self, other):
         if self.can_do_arithmetic(other):
             return( self.rounding_handler.add(self, other) )
@@ -89,10 +103,6 @@ class Precise_value(object):
     def __gt__(self, other):
         return( self.fixed_point_value_rounded > other.fixed_point_value_rounded )
 
-    def __str__(self):
-        '''TODO: consider when
-        return( str(self.fixed_point_value_rounded) )
-
     def can_do_arithmetic(self, other):
         '''TODO raise exception or quit if math can't be done'''
         return( Precise_value.is_precise_value_object(other) and self.are_rounding_handlers_same(other) )
@@ -104,9 +114,6 @@ class Precise_value(object):
     def are_rounding_handlers_same(self, other):
         return(self.rounding_handler.__class__ is other.rounding_handler.__class__)
 
-    def update_significant_digit_counts(self):
-        self.num_all_significant_digits = self.rounding_handler.num_all_significant_digits(self.__repr__())
-        self.num_significant_decimal_digits = self.rounding_handler.num_significant_decimal_digits(self.__repr__())
 
 
 class Rounding_handler(metaclass=ABCMeta):
