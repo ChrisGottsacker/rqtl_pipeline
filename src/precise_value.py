@@ -13,9 +13,11 @@ class Precise_value(object):
 
     def __init__(self, value, rounding_handler):
         '''
+        Constructs new Precise Value, assumes value is rounded to correct precision.
+
         Keyword arguments:
+        value -- can be any type that Decimal accepts
         rounding_method -- reference to one of the Rounding Handler classes
-        value -- can be any type that Decimal() accepts
         '''
         self.num_all_significant_digits = None
         self.num_significant_decimal_digits = None
@@ -30,6 +32,24 @@ class Precise_value(object):
         self.fixed_point_value_unrounded = self.fixed_point_value_rounded
         # Specifies what digits count as significant
         self.rounding_handler = rounding_handler
+
+
+    def __init__(self, value, rounding_handler, num_all_significant_digits,
+                    num_significant_decimal_digits):
+        '''
+        Constructs new Precise Value, assumes value may not have correct precision.
+
+        This constructor is typically used to make Precise Values that are part
+        of an intermediate calculation. The num_all_significant_digits and
+        num_significant_decimal_digits parameters enable rounding value to
+        its correct precision (according to rules specified by rounding_handler).
+
+        Keyword arguments:
+        value -- can be any type that Decimal accepts
+        rounding_method -- reference to one of the Rounding Handler classes
+        num_all_significant_digits -- quantity used to know how to round
+        num_significant_decimal_digits -- quantity used to know how to round
+        '''
 
 
     '''Arithmetic Operators:'''
