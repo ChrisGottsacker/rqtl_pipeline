@@ -115,8 +115,6 @@ class Precise_value(object):
     def are_rounding_handlers_same(self, other):
         return(self.rounding_handler.__class__ is other.rounding_handler.__class__)
 
-
-
 class Rounding_handler(metaclass=ABCMeta):
     '''
     Simple Rounding Handler, does NO rounding. Significant figures are irrelevant.
@@ -124,43 +122,48 @@ class Rounding_handler(metaclass=ABCMeta):
     '''
     @classmethod
     def add(cls, operand_1, operand_2):
-        # Do arithmetic using wrapped class's magic functions
+        '''Do arithmetic using wrapped class's magic functions'''
         fixed_point_value = operand_1.fixed_point_value + operand_2.fixed_point_value
-        rounded_fixed_point_value = cls.round_decimal_digits(
-            fixed_point_value, operand_1, operand_2)
-        return( Precise_value(rounded_fixed_point_value, operand_1.rounding_handler) )
+        return( Precise_value(fixed_point_value, operand_1.rounding_handler,
+
+                max_num_decimal_digits_to_keep(operand_1.fixed_point_value,
+                operand_2.fixed_point_value)) )
 
     @classmethod
     def sub(cls, operand_1, operand_2):
-        # Do arithmetic using wrapped class's magic functions
+        '''Do arithmetic using wrapped class's magic functions'''
         fixed_point_value = operand_1.fixed_point_value - operand_2.fixed_point_value
-        rounded_fixed_point_value = cls.round_decimal_digits(
-            fixed_point_value, operand_1, operand_2)
-        return( Precise_value(rounded_fixed_point_value, operand_1.rounding_handler) )
+        return( Precise_value(fixed_point_value, operand_1.rounding_handler) )
 
     @classmethod
     def mul(cls, operand_1, operand_2):
-        # Do arithmetic using wrapped class's magic functions
+        '''Do arithmetic using wrapped class's magic functions'''
         fixed_point_value = operand_1.fixed_point_value * operand_2.fixed_point_value
-        rounded_fixed_point_value = cls.round_all_significant_digits(
-            fixed_point_value, operand_1, operand_2 )
-        return( Precise_value(rounded_fixed_point_value, operand_1.rounding_handler) )
+        return( Precise_value(fixed_point_value, operand_1.rounding_handler) )
 
     @classmethod
     def div(cls, operand_1, operand_2):
-        # Do arithmetic using wrapped class's magic functions
+        '''Do arithmetic using wrapped class's magic functions'''
         fixed_point_value = operand_1.fixed_point_value / operand_2.fixed_point_value
-        rounded_fixed_point_value = cls.round_all_significant_digits(
-            fixed_point_value, operand_1, operand_2 )
         return( Precise_value(rounded_fixed_point_value, operand_1.rounding_handler) )
 
-    @abstractmethod
-    def round_decimal_digits(calculated_value, operand_1, operand_2):
-        return( calculated_value )
+    def round(precise_value):
+        '''code snipped from rounding decimals:
+        calculated_value.quantize(Decimal(str(pow(10,-num_digits_to_keep))),
+        rounding=ROUND_HALF_EVEN)'''
 
-    @abstractmethod
-    def round_all_significant_digits(calculated_value, operand_1, operand_2):
-        return(calculated_value)
+    def max_num_all_significant_digits_to_keep(operand_1, operand_2):
+        '''Compares two operands, returns the max number of total sigfigs
+        any product of theirs could have'''
+        return(min(operand_1.num_all_significant_digits_to_keep,
+            operand_2.num_all_significant_digits_to_keep))
+
+    def max_num_decimal_digits_to_keep(operand_1, operand_2):
+        '''Compares two operands, returns the max number of decimal sigfigs
+        any product of theirs could have'''
+        return(min(operand_1.num_significant_decimal_digits,
+            operand_2.num_significant_decimal_digits))
+
 
     @abstractmethod
     def num_significant_decimal_digits(value):
@@ -216,19 +219,6 @@ class Rounding_handler_keep_integral_zeroes(Rounding_handler, metaclass=ABCMeta)
     .00     has 1 sigfig
     .01     has 1 sigfig
     '''
-    def round(value):
-        '''code snipped from roundin decimals:
-        calculated_value.quantize(Decimal(str(pow(10,-num_digits_to_keep))),
-        rounding=ROUND_HALF_EVEN)'''
-
-    def num_all_significant_digits_to_keep(calculated_value, operand_1, operand_2):
-        "TODO complete this after add() and mul() work how I want"
-        return(None)
-
-    def num_decimal_digits_to_keep(calculated_value, operand_1, operand_2):
-        return(min(operand_1.num_significant_decimal_digits,
-            operand_2.num_significant_decimal_digits))
-
     def num_all_significant_digits(value):
         '''Counts number of significant figures in a numeric string.'''
         parsed_value = Rounding_handler_keep_integral_zeroes.get_all_significant_digits(value)

@@ -1,2 +1,3 @@
 cls
-python -m unittest test.test_Rounding_handler_keep_integral_zeroes
+python -m unittest test.test_Precise_value
+REM python -m unittest test.test_Rounding_handler
