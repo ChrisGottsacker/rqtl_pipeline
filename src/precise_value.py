@@ -11,39 +11,15 @@ class Precise_value(object):
     Wrapper for Decimal object.
     '''
 
-    def __init__(self, value, rounding_handler):
+    def __init__(self, value,
+                rounding_handler,
+                num_all_significant_digits = None,
+                num_significant_decimal_digits = None):
         '''
-        Constructs new Precise Value, assumes value is rounded to correct precision.
+        Constructs new Precise Value. Also used to construct an intermediate value.
 
-        Keyword arguments:
-        value -- can be any type that Decimal accepts
-        rounding_method -- reference to one of the Rounding Handler classes
-        '''
-        # Use for intermediate arithmetic. Never rounded. Not correct precision.
-        self.fixed_point_value_unrounded = Decimal(value)
-        # Use for comparisons, display purposes. (Rouneded to) Correct precision
-        self.fixed_point_value_rounded = self.fixed_point_value_unrounded
-        # Specifies how rounding should be done
-        self.rounding_handler = rounding_handler
-
-        # Counts how many digits are significant
-        value_as_string = self.__str__()
-        self.num_all_significant_digits = +\
-            self.rounding_handler.num_all_significant_digits(value_as_string)
-        self.num_significant_decimal_digits = +\
-            self.rounding_handler.num_significant_decimal_digits(value_as_string)
-
-
-
-    def __init__(self, value, rounding_handler, num_all_significant_digits,
-                    num_significant_decimal_digits):
-        '''
-        Constructs new Precise Value, assumes value may not have correct precision.
-
-        This constructor is typically used to make Precise Values that are part
-        of an intermediate calculation. The num_all_significant_digits and
-        num_significant_decimal_digits parameters enable rounding value to
-        its correct precision (according to rules specified by rounding_handler).
+        Intermediate values are numbers that arise from calculation and may
+        contain non-significant precision.
 
         Keyword arguments:
         value -- can be any type that Decimal accepts
@@ -53,21 +29,57 @@ class Precise_value(object):
         '''
         # Use for intermediate arithmetic. Never rounded. Not correct precision.
         self.fixed_point_value_unrounded = Decimal(value)
-        # Use for comparisons, display purposes. (Rouneded to) Correct precision.
-        # Kept current by all functions, so its value is always accurate.
-        self.fixed_point_value_rounded = rounding_handler.round(self)
         # Specifies how rounding should be done
         self.rounding_handler = rounding_handler
 
-        self.num_all_significant_digits = num_all_significant_digits
-        self.num_significant_decimal_digits = num_significant_decimal_digits
+        value_as_string = str(self.fixed_point_value_unrounded)
+        if(num_all_significant_digits is None and num_significant_decimal_digits is None):
+            # Counts how many digits are significant
+            self.num_all_significant_digits = \
+                self.rounding_handler.num_all_significant_digits(value_as_string)
+            self.num_significant_decimal_digits = \
+                self.rounding_handler.num_significant_decimal_digits(value_as_string)
+        elif(num_all_significant_digits is not None and
+                num_significant_decimal_digits is not None):
+            # Use provided specifications for constructing intermediate value
+            self.num_all_significant_digits = num_all_significant_digits
+            self.num_significant_decimal_digits = num_significant_decimal_digits
+        else:
+            sys.exit('Error: Precise_value.__init__() declared with',
+                num_all_significant_digits, 'num_all_significant_digits and',
+                num_significant_decimal_digits, 'num_significant_decimal_digits.')
+
+        # Use for comparisons, display purposes. (Rouneded to) Correct precision
+        self.fixed_point_value_rounded = rounding_handler.round(self)
+
+    @classmethod
+    def intermediate(cls, value, rounding_handler, num_all_significant_digits,
+                    num_significant_decimal_digits):
+        '''
+        Factory method to constructs new Precise Value.
+
+        This constructor is typically used to make Precise Values that are part
+        of an intermediate calculation. The num_all_significant_digits and
+        num_significant_decimal_digits parameters enable rounding value to
+        its correct precision (according to rules specified by rounding_handler).
+
+        Keyword arguments:
+        value -- can be any type that Decimal accepts.
+                 Assumed that value may not have correct precision
+        rounding_method -- reference to one of the Rounding Handler classes
+        num_all_significant_digits -- quantity used to know how to round
+        num_significant_decimal_digits -- quantity used to know how to round
+        '''
+        return(cls(value, rounding_handler, num_all_significant_digits,
+                    num_significant_decimal_digits))
 
     def __str__(self):
         return( str(self.fixed_point_value_rounded) )
 
-    '''Arithmetic Operators:'''
-    # Any operation that changes this Precise Value's value must update
-    # self.fixed_point_value_rounded
+    '''Arithmetic Operators:
+        -Any operation that changes this Precise Value's value must update
+        self.fixed_point_value_rounded
+    '''
     def __add__(self, other):
         if self.can_do_arithmetic(other):
             return( self.rounding_handler.add(self, other) )
@@ -163,7 +175,6 @@ class Rounding_handler(metaclass=ABCMeta):
         any product of theirs could have'''
         return(min(operand_1.num_significant_decimal_digits,
             operand_2.num_significant_decimal_digits))
-
 
     @abstractmethod
     def num_significant_decimal_digits(value):
