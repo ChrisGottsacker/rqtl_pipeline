@@ -53,6 +53,7 @@ class Precise_value(object):
         self.fixed_point_value_rounded = rounding_handler.round(self)
 
     @classmethod
+    def intermediate(cls, value, rounding_handler, num_all_significant_digits,
                     num_significant_decimal_digits):
         '''
         Factory method to constructs new Precise Value.
