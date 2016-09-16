@@ -9,7 +9,7 @@ class test_Rounding_handler_keep_integral_zeroes(unittest.TestCase):
         self.value_1 = pv('3', Rounding_handler)
         self.assertEqual(self.value_1, pv('3', Rounding_handler))
         self.value_2 = pv('2', Rounding_handler)
-        self.rounding_handler = Rounding
+        self.rounding_handler = Rounding_handler
 
     def test_str(self):
         a = pv('1.3E4', Rounding_handler)
