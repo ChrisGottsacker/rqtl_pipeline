@@ -136,7 +136,7 @@ class Rounding_handler(metaclass=ABCMeta):
     def add(cls, operand_1, operand_2):
         '''Do arithmetic using wrapped class's magic functions'''
         fixed_point_value = operand_1.fixed_point_value + operand_2.fixed_point_value
-        return( Precise_value(fixed_point_value, operand_1.rounding_handler,
+        return( Precise_value.intermediate(fixed_point_value, operand_1.rounding_handler,
 
                 max_num_decimal_digits_to_keep(operand_1.fixed_point_value,
                 operand_2.fixed_point_value)) )
@@ -175,15 +175,15 @@ class Rounding_handler(metaclass=ABCMeta):
         any product of theirs could have'''
         return(min(operand_1.num_significant_decimal_digits,
             operand_2.num_significant_decimal_digits))
+    
+    @abstractmethod
+    def num_all_significant_digits(value):
+        '''Counts total number of significant figures in a numeric string.'''
+        return(None)
 
     @abstractmethod
     def num_significant_decimal_digits(value):
         '''Counts number of significant digits to right of decimal point'''
-        return(None)
-
-    @abstractmethod
-    def num_all_significant_digits(value):
-        '''Counts total number of significant figures in a numeric string.'''
         return(None)
 
     @abstractmethod

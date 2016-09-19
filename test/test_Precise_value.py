@@ -11,7 +11,19 @@ class test_Rounding_handler_keep_integral_zeroes(unittest.TestCase):
         self.value_2 = pv('2', Rounding_handler)
         self.rounding_handler = Rounding_handler
 
-    def test_str(self):
+    def test_init(self):
+        a = pv('3.34', Rounding_handler)
+        self.assertEqual(str(a.fixed_point_value_unrounded), '3.34')
+        # self.assertEqual(str(a.num_all_significant_digits), '3')
+        # self.assertEqual(str(a.num_significant_decimal_digits), '2')
+
+    def test_intermediate(self):
+        a = pv.intermediate('3.34', Rounding_handler, 3, 2)
+        self.assertEqual(str(a.fixed_point_value_unrounded), '3.34')
+        self.assertEqual(str(a.num_all_significant_digits), '3')
+        self.assertEqual(str(a.num_significant_decimal_digits), '2')
+
+    def  notreadyto_test_str(self):
         a = pv('1.3E4', Rounding_handler)
         self.assertEqual(a.__str__(), '1.3E4')
 
