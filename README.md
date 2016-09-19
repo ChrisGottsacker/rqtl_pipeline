@@ -1,9 +1,3 @@
-# rqtl_pipeline
+#Significance Arithmetic
 
-Requirements:
--Python 3.? installed
--Files needed in same directory as get_rqtl.py:
-  -precise_value.py
-
-Procedure:
--Open command-line in directory with input files
+First attempt at implementing a Python type capable of keeping track of tracking a value's significant figures throughout intermediate calculations.
